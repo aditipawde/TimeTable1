@@ -103,7 +103,74 @@ def class_batch_overlap(timetable, req_all):
     #print(class_cost)
     return (class_cost + batch_cost)
 
-def get_cost(tt, req_all, n_days, n_slots, max_theory, max_lab):
+
+# def teacher_overlap(timetable):
+#     teacher_cost = 0
+#     n_classes, n_days, n_slots, n_maxlecsperslot=timetable.shape
+#     for day in range(n_days):
+#         for slot in range (n_slots):
+#             temp_array = timetable[:, day, slot, :]
+#             teacher_list = []
+#             #print(temp_array)
+#             for row in temp_array:
+#                 for cell in row:
+#                     if not np.isnan(cell):
+#                         req = req_all.loc[req_all.index == cell]
+#                         teacher_list.append(req.iloc[0]['teacherId'])
+#             for teacher_id in teacher_list:
+#                 if teacher_id is not None:
+#                     teacher_cost = teacher_cost + teacher_list.count(teacher_id) - 1
+#
+#     return teacher_cost
+#
+#
+# def class_batch_overlap(timetable):
+#     class_cost = 0
+#     batch_cost = 0
+#     n_classes, n_days, n_slots, n_maxlecsperslot=timetable.shape
+#     for cl in range(n_classes):
+#         for day in range(n_days):
+#             for slot in range(n_slots):
+#                 class_list = []
+#                 batch_list = []
+#                 slot_array = timetable[cl,day,slot,:]
+#                 for sub_slot in slot_array:
+#                     if not np.isnan(sub_slot):
+#                         req = req_all.loc[req_all.index == sub_slot]
+#                         if (req.iloc[0]['category'] == 'T'):
+#                             class_list.append(req.iloc[0]['classId'])
+#                         elif req.iloc[0]['category'] == 'L':
+#                             batch_list.append(req.iloc[0]['batchId'])
+#
+#                 for class_id in class_list:
+#                     class_cost = class_cost + class_list.count(class_id)-1
+#
+#                 for batch_id in batch_list:
+#                     batches_can_overlap = f_batch_can_overlap[f_batch_can_overlap['batchId']==batch_id]
+#                     batches = batches_can_overlap['batchOverlapId']
+#                     #print(batches)
+#                     for batch in batch_list:
+#                         batch_cost = batch_cost + batch_list.count(batch_id) - 1
+#
+#     #print(batch_cost)
+#     #print(class_cost)
+#     return (class_cost + batch_cost)
+
+
+def req_missing(timetable, req_all):
+    n_classes, n_days, n_slots, n_maxlecsperslot = timetable.shape
+    penalty=0
+    for c in range(n_classes):
+        req_for_c = req_all.loc[req_all['classId'] == c]
+        s = np.unique(timetable[c])
+        missing = [x for x in req_for_c.index if x not in s]
+        penalty=penalty+len(missing)
+        if(len(missing)>0):
+            print(c, len(missing))
+    return penalty
+
+def get_cost(tt, req_all, max_theory, max_lab):
+    n_classes, n_days, n_slots, n_maxlecsperslot = tt.shape
     "Calculates all costs for time table"
 
     # weights
