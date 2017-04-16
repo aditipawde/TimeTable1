@@ -69,6 +69,10 @@ def generate_random_tt (req_all, n_days, n_slots, n_lec_per_slot, n_classes):
                     r_day = random.randint(0,n_days-1)
                     r_slot = random.randint(0, n_slots-1)
                     r_lecnumber = random.randint(0,n_lec_per_slot-1)
+                    print c
+                    print r_day
+                    print r_slot
+                    print r_lecnumber
                     if(np.isnan(np.sum(timetable_np[c,r_day,r_slot,r_lecnumber]))):   #Check if that slot is empty, this way of using np.isnan is the fastest way of doing so
                         timetable_np[c,r_day,r_slot,r_lecnumber] = req
                         not_assigned = 0

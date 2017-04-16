@@ -41,7 +41,6 @@ def get_room_allocation_overflow (timetable, req_all, n_days, n_slots,  max_theo
         for slot in range (n_slots):
             temp_array = timetable[:, day, slot, :]
             req_list = []
-            #print(temp_array)
             for row in temp_array:
                 for cell in row:
                     if not np.isnan(cell):
@@ -63,13 +62,13 @@ def get_room_allocation_overflow (timetable, req_all, n_days, n_slots,  max_theo
 
 
 def class_batch_overlap(timetable, req_all):
-    "Calculates number of times batches of the same class overlap and theory classes of teh same class overlap"
+    """Calculates overlaps for theory classes and (non allowed) overlaps for batches and increments cost accordingly"""
 
     class_cost = 0
     batch_cost = 0
 
     n_classes, n_days, n_slots, n_max_lec_per_slot=timetable.shape
-    f_batch_can_overlap = da.initialize('batchcanoverlap');
+    f_batch_can_overlap = da.initialize('batchCanOverlap');
 
     for cl in range(n_classes):
         for day in range(n_days):
@@ -77,31 +76,37 @@ def class_batch_overlap(timetable, req_all):
                 class_list = []
                 batch_list = []
                 slot_array = timetable[cl,day,slot,:]
-
+                # Make 2 lists-class_list having all classes in the sub-slot & batch-list having all batches in sub-slot
+                # Classes have category 'T' and Batches have category 'L'
                 for sub_slot in slot_array:
                     if not np.isnan(sub_slot):
-
                         req = req_all.loc[req_all.index == sub_slot]
-
-                        if (req.iloc[0]['category'] == 'T'):        # Class clash can be removed
+                        if req.iloc[0]['category'] == 'T':        # Class clash can be removed
                             class_list.append(req.iloc[0]['classId'])
-
                         elif req.iloc[0]['category'] == 'L':
                             batch_list.append(req.iloc[0]['batchId'])
 
-                for class_id in class_list:
-                    class_cost = class_cost + class_list.count(class_id) - 1
+                # If the same class is repeated in the class_list for the same sub-slot, increment cost
+                if len(class_list) > 1 :        # Cost will be incremented only if multiple classes in same sub-slot
+                    for class_id in class_list:
+                        class_cost = class_cost + class_list.count(class_id) - 1
 
-                for batch_id in batch_list:
-                    batches_can_overlap = f_batch_can_overlap[f_batch_can_overlap['batchId'] == batch_id]
-                    batches = batches_can_overlap['batchOverlapId']
-                    #print(batches)
-                    for batch in batch_list:
+                if len(batch_list)>1:           # Cost will be incremented only if multiple batches in same sub-slot
+                    for batch_id in batch_list:             # In case same batch is slotted more than once in sub slot
                         batch_cost = batch_cost + batch_list.count(batch_id) - 1
+                    # 1. Consider first batch in batch_list.
+                    # 2. Get all batches that are allowed to overlap
+                    # 3. Loop over all batches in batch_list. If any batch does'nt belong to this list, cost incremented
+                    batch_id = batch_list[0]
+                    batches_can_overlap = f_batch_can_overlap[f_batch_can_overlap['batchId'] == batch_id]
+                    batches_all = batches_can_overlap[batches_can_overlap.columns[2:3]] # get batch_can_overlap column
+                    batches_all_list = batches_all['batchOverlapId'].tolist()
+                    batches_all_list.append(batch_id)
+                    for batch in batch_list:
+                        if batch not in batches_all_list:
+                            batch_cost += 1
 
-    #print(batch_cost)
-    #print(class_cost)
-    return (class_cost + batch_cost)
+    return class_cost + batch_cost
 
 
 def getting_lunch_break (timetable, n_days, n_slots, n_classes):

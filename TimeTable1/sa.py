@@ -15,7 +15,8 @@ req_all = m.get_all_requirements();
 
 # Get number of classes to be scheduled -- may differ from actual number of classes
 classes_tobe_scheduled = set(req_all.classId);
-n_classes = len(classes_tobe_scheduled);
+#n_classes = len(classes_tobe_scheduled);
+n_classes = 14
 #print(n_classes);
 
 # Create room groups -- used in cost claculations and final room allocation
