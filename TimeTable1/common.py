@@ -73,29 +73,75 @@ def isSlotAvailable(req_all, timetable_np, c, r_day, r_slot, r_lecnumber, req_id
     else:
         return False
 
+###### Fuctions obtained form Ravina's code - dated 5/4/17
 
 def create_random_timetable(n_classes, n_days, n_slots, n_maxlecsperslot, req_all):
-    "Creates a timetable where requirements are randomly slotted. Takes care of duration of each requirement"
-
     timetable_np = np.empty((n_classes, n_days, n_slots, n_maxlecsperslot)) * np.nan
-
-    for c in (set(req_all.classId)):        # First take one class
-        
-        req_forgivenclass = req_all.loc[req_all['classId'] == c]        # List all the requirements for that class in req_forgivenclass
-        # print(req_forgivenclass)
-        # print(set(req_forgivenclass.index))     #These are the indices of the requirements for this class
-
-        for req in set(req_forgivenclass.index):  # Schedule each of these requirements
+    # print(timetable_np)
+    for c in (set(req_all.classId)):  # First take one class
+        req_forgivenclass = req_all.loc[req_all['classId'] == c]  # List all the requirements for that class in req_forgivenclass
+        req_forgivenclass = req_forgivenclass.sort('eachSlot', ascending=False)
+        req_set=req_forgivenclass.index
+        for i in range(len(req_set)):  # Schedule each of these requirements
+            req=req_set[i]
             notassigned = 1
             while (notassigned == 1):  # Keep on scheduling till not found
-                r_day = random.randint(0, n_days)
-                r_slot = random.randint(0, n_slots)
-                #r_lecnumber = next(lec_num for lec_num in n_maxlecsperslot if timetable_np[int(c), r_day, r_slot, lec_num] is None, None)
-                if (isSlotAvailable(req_all, timetable_np, c, r_day, r_lecnumber, r_slot, req)):
- #                   timetable_np=assigntimetable_np[int(c), r_day, r_slot, r_lecnumber] = req
+                r_day = random.randint(0,n_days-1)
+                r_slot = random.randint(0,n_slots-1)
+ #               r_lecnumber = next(lec_num for lec_num in n_maxlecsperslot if timetable_np[int(c), r_day, r_slot, lec_num] is None, None)
+                if (is_slot_available(req_all, timetable_np, c, r_day, r_slot, req)):
+                    timetable_np = assign(timetable_np, req_all, int(c), r_day, r_slot, req)
                     notassigned = 0
     return timetable_np
 
+
+def find_first_nan(vec):
+    """return the index of the first occurence of item in vec"""
+    for i in range(len(vec)):           # xrange is depricated in 3.x. Hence chaged to range
+        if(np.isnan(vec[i])):
+            return i
+    return -1
+
+
+def is_slot_available(req_all, timetable_np, c, r_day, r_slot, req_id):
+    #If slot is of duration 1
+    n_classes, n_days, n_slots, n_maxlecsperslot = timetable_np.shape
+    SlotsAvailable = 0
+    SlotRequirement = int(req_all.loc[int(req_id), 'eachSlot'])
+    #print(SlotRequirement)
+    if(n_slots-r_slot < SlotRequirement):
+        return False
+    else:
+        for i in range(SlotRequirement): #Fetching how many lectures do we require to slot
+            j = find_first_nan(timetable_np[int(c), r_day, r_slot + i, :])
+            if(j == -1):
+                break
+            else:
+                #if(req_all.loc[req_id,'category']=='T'): cat='L'
+                #else: cat='T'
+                #req_list= timetable_np[int(c), r_day, r_slot+i, :]
+                 ##Fetch the requirement records of the selected values
+                #if(not np.isnan(np.sum(req_list))):
+                    #if(cat in req_all.loc[set(req_list), 'category']):   #Allow only if there is another lecture of same type, or no lecture at all
+                SlotsAvailable = SlotsAvailable + 1
+                #else:
+                    #SlotsAvailable = SlotsAvailable + 1
+
+        if(SlotsAvailable == SlotRequirement):
+            return True
+        else:
+            return False
+
+
+
+def assign(timetable_np, req_all, c, r_day, r_slot, req_id):
+    SlotRequirement = int(req_all.loc[req_id, 'eachSlot'])
+    for i in range(SlotRequirement):  # Slotting the lecture for given number of hours
+        j = find_first_nan(timetable_np[c, r_day, r_slot+i, :])
+        timetable_np[c, r_day, r_slot + i, j] = req_id
+    return timetable_np
+
+ #############################
 
 
 def get_room_groups(lab_group, theory_group):

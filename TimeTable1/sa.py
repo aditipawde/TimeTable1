@@ -48,7 +48,7 @@ while (temperature > 1):
         cost = cf.get_cost(tt_new, req_all, n_days, n_slots, max_theory, max_lab) - cf.get_cost(tt_initial, req_all, n_days, n_slots, max_theory, max_lab);
 
         # If cost of new time table is less, accept it
-        if (cost <= 0 or (math.exp(-1*cost/temperature) < random.random())):
+        if (cost <= 0 or (math.exp(-1 * cost / temperature) < random.random())):
             tt_initial = tt_new;
 
         i += 1

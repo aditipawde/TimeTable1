@@ -103,6 +103,27 @@ def class_batch_overlap(timetable, req_all):
     #print(class_cost)
     return (class_cost + batch_cost)
 
+
+def getting_lunch_break (timetable, n_days, n_slots, n_classes):
+    "Checks if a class is getting lunch break"
+
+    lunch_break_cost = 0;
+
+    # Check for all classes if the lunch break is available
+    for classId in range (n_classes):
+        for day in range(n_days):
+            if (not (np.isnan (timetable[classId, day, 5, :]) or np.isnan (timetable[classId, day, 6, :]))):
+                lunch_break_cost += 1;
+
+    return lunch_break_cost;
+
+
+def get_teacher_workload_cost (timetable, req_all):
+    "Checks if teacher workload is within maxHrs and minHrs"
+
+    teacher_req = req_all['teacherId' =t]
+
+
 def get_cost(tt, req_all, n_days, n_slots, max_theory, max_lab):
     "Calculates all costs for time table"
 
