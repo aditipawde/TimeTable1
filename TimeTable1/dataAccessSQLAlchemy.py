@@ -8,7 +8,7 @@ import pandas as pd
 class DB:
 
     def getConnection (self):
-        engine = sql.create_engine('mysql+pymysql://root:pedha@localhost/timeTable');
+        engine = sql.create_engine('mysql+pymysql://root:Admin@123@localhost/timetable');
 
         #print(engine.table_names());
         con = engine.connect();

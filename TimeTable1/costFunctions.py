@@ -27,7 +27,7 @@ def teacher_overlap(timetable, req_all, n_days, n_slots):
             for teacher_id in teacher_list:
                 if teacher_id is not None:
                     teacher_cost = teacher_cost + teacher_list.count(teacher_id) - 1
-    print("Teacher cost %d", teacher_cost);
+    
 
     return teacher_cost
 
@@ -57,7 +57,7 @@ def get_room_allocation_overflow (timetable, req_all, n_days, n_slots,  max_theo
     if (max_lab < 0):
         room_cost = room_cost + -(max_lab)   
            
-    print("Room cost %d", room_cost);
+ 
     return room_cost
 
 
@@ -68,7 +68,7 @@ def class_batch_overlap(timetable, req_all):
     batch_cost = 0
 
     n_classes, n_days, n_slots, n_max_lec_per_slot=timetable.shape
-    f_batch_can_overlap = da.initialize('batchCanOverlap');
+    f_batch_can_overlap = da.initialize('batchcanoverlap');
 
     for cl in range(n_classes):
         for day in range(n_days):
@@ -108,6 +108,7 @@ def class_batch_overlap(timetable, req_all):
 
     return class_cost + batch_cost
 
+## To be tested
 
 def getting_lunch_break (timetable, n_days, n_slots, n_classes):
     "Checks if a class is getting lunch break"
@@ -116,32 +117,52 @@ def getting_lunch_break (timetable, n_days, n_slots, n_classes):
 
     # Check for all classes if the lunch break is available
     for classId in range (n_classes):
-        for day in range(n_days):
-            if (not (np.isnan (timetable[classId, day, 5, :]) or np.isnan (timetable[classId, day, 6, :]))):
+        for day in range(n_days): #this is wrong
+            if (not (np.isnan (timetable[classId, day, 4, :]) or np.isnan (timetable[classId, day, 5, :]) or np.isnan (timetable[classId, day, 6, :]))):
                 lunch_break_cost += 1;
 
     return lunch_break_cost;
 
+## To be tested
 
-def get_teacher_workload_cost (timetable, req_all):
-    "Checks if teacher workload is within maxHrs and minHrs"
+def subject_on_same_day (timetable, req_all, classId, n_days, n_slots):
+    "Finds out if requirements of same subject fall on same day"
 
-    teacher_req = req_all['teacherId' =t]
+    req_classId = req_all.loc[req_all['classId'] == classId]
+    subjects = req_classId['subjectId'] 
 
 
-def get_cost(tt, req_all, n_days, n_slots, max_theory, max_lab):
+
+    print(subjects);
+
+
+#def get_teacher_workload_cost (timetable, req_all):
+#    "Checks if teacher workload is within maxHrs and minHrs"
+
+#    teacher_req = req_all['teacherId' =t]
+
+
+def get_cost(tt, req_all, n_classes, n_days, n_slots, max_theory, max_lab):
     "Calculates all costs for time table"
 
     # weights
     w_teacher = w_room = w_batch_class = 1;
+    w_lunch_break = 1;
 
     # Varoius costs
     c_teacher = teacher_overlap (tt, req_all, n_days, n_slots);
     c_room = get_room_allocation_overflow (tt, req_all, n_days, n_slots, max_theory, max_lab);
     c_batch_class = class_batch_overlap (tt, req_all);
+    #c_lunch_break = getting_lunch_break(tt, n_days, n_slots, n_classes);
      
     # Actual cost
     cost = w_teacher * c_teacher + w_room * c_room + w_batch_class * c_batch_class;
+
+    # Print costs
+    print("Teacher cost: ", c_teacher);
+    print("Room cost: ", c_room);
+    print("Batch-class overlap cost: ", c_batch_class);
+    #print("Lunch break cost: ", c_lunch_break);
 
     return cost;
 
