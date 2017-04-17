@@ -13,7 +13,6 @@ f_join_subject_subjectBatchTeacher = da.execquery('select s.subjectId, subjectSh
 f_join_subject_subjectBatchTeacher.insert(6,'category','L') #L for Lab
 #f_join_subject_subjectBatchTeacher.rename(columns={'batchId':'classOrBatchId'}, inplace=True)
 f_subjectBatchClassTeacher = pd.concat([f_join_subject_subjectClassTeacher, f_join_subject_subjectBatchTeacher])
-print(f_subjectBatchClassTeacher)
 #x = f_subject.join(f_subjectBatchTeacher.set_index('subjectId'), on='subjectId')
 x=f_subjectBatchClassTeacher
 x=x.reset_index()
@@ -56,8 +55,11 @@ for c in (set(req_all.classId)):    #First take one class
 
 
 arr_2d = timetable_np.reshape(70,40)
-print(arr_2d)
-pd.DataFrame(arr_2d).to_csv('tt_2d')
+#print(arr_2d)
+pd.DataFrame(arr_2d).to_csv('tt_2d.csv')
 
-read_arr_2d =
+read_arr_2d = pd.read_csv('tt_2d.csv')
+numpyMatrix = read_arr_2d.as_matrix()
+tt_4d = numpyMatrix.reshape(14, 5, 10, 4)
+print(tt_4d)
     #print(timetable_np[c,:,:,:])
