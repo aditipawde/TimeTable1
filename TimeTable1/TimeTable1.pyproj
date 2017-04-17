@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>5eb5df15-ccb2-42cf-9214-34a4d670b7df</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>main_ravina.py</StartupFile>
+    <StartupFile>test.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -38,6 +38,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="main_ravina.py" />
+    <Compile Include="main_ravina2.py" />
     <Compile Include="sa.py">
       <SubType>Code</SubType>
     </Compile>

@@ -9,13 +9,13 @@ def initialize_population(p):
     P=[None]*p
     print("initialising population...")
     for i in range(p):
-        tt = t.create_random_timetable(n_classes=14, n_days=5, n_slots=10, n_maxlecsperslot=5, req_all=t.req_all)
+        tt = t.create_random_timetable(n_classes=14, n_days=5, n_slots=10, n_maxlecsperslot=5, req_all=t.req_single)
         P[i]=tt
         print(i)
     return P
 
 def find_objective(h):
-    penalty=cost.get_cost(h,t.req_all, 4, 4)
+    penalty=cost.get_cost(h, t.req_single, 4, 4)
     return penalty
 
 def crossover(tt1, tt2):
@@ -24,7 +24,7 @@ def crossover(tt1, tt2):
     new_h2 = np.empty((n_classes, n_days, n_slots, n_maxlecsperslot)) * np.nan
     #Change remove 4
     for c in range(n_classes):
-        req_for_c = t.req_all.loc[t.req_all['classId'] == c]
+        req_for_c = t.req_single.loc[t.req_single['classId'] == c]
         req_h1=[]
         req_h2=[]
         for d in range(n_days):
@@ -35,14 +35,14 @@ def crossover(tt1, tt2):
                     for req_id in tt1[c, d, s, :]:
                         if(np.isnan(req_id)): continue
                         if(req_h1 is not None and not req_id in req_h1):
-                            if(t.is_slot_available(t.req_all, new_h1, c, d, s, req_id)):
+                            if(t.is_slot_available(t.req_single, new_h1, c, d, s, req_id)):
                                 new_h1=t.assign(new_h1, c, d, s, req_id)
                                 req_h1.append(req_id)
 
                     for req_id in tt2[c, d, s, :]:
                         if (np.isnan(req_id)): continue
                         if (req_h2 is not None and not req_id in req_h2):
-                            if (t.is_slot_available(t.req_all, new_h2, c, d, s, req_id)):
+                            if (t.is_slot_available(t.req_single, new_h2, c, d, s, req_id)):
                                 new_h2 = t.assign(new_h2, c, d, s, req_id)
                                 req_h2.append(req_id)
 
@@ -50,20 +50,20 @@ def crossover(tt1, tt2):
                     for req_id in tt2[c, d, s, :]:
                         if(np.isnan(req_id)): continue
                         if(req_h1 is not None and not req_id in req_h1):
-                            if(t.is_slot_available(t.req_all, new_h1, c, d, s, req_id)):
+                            if(t.is_slot_available(t.req_single, new_h1, c, d, s, req_id)):
                                 new_h1=t.assign(new_h1, c, d, s, req_id)
                                 req_h1.append(req_id)
                     for req_id in tt1[c, d, s, :]:
                         if(np.isnan(req_id)): continue
                         if(req_h2 is not None and not req_id in req_h2):
-                            if (t.is_slot_available(t.req_all, new_h2, c, d, s, req_id)):
+                            if (t.is_slot_available(t.req_single, new_h2, c, d, s, req_id)):
                                 new_h2 = t.assign(new_h2, c, d, s, req_id)
                                 req_h2.append(req_id)
 
         #Now, after all the requirements of class c have been crossovered, we check for any missing requirements and fill it
         #First for h1
 
-        req_for_c = t.req_all.loc[t.req_all['classId'] == c]
+        req_for_c = t.req_single.loc[t.req_single['classId'] == c]
         #s = np.unique(timetable[c])
         #missing = [x for x in req_for_c.index if x not in s]
         #s_h1 = set(req_h1)
@@ -73,7 +73,7 @@ def crossover(tt1, tt2):
         if(len(missing_h1)>0):
             for d in range(n_days):
                 for s in range(n_slots):
-                    if(t.is_slot_available(t.req_all, new_h1, c, d, s, missing_h1[0])):
+                    if(t.is_slot_available(t.req_single, new_h1, c, d, s, missing_h1[0])):
                         new_h1 = t.assign(new_h1, c, d, s, missing_h1[0])
                         req_h1.append(missing_h1[0])
                         missing_h1.pop(0)
@@ -90,7 +90,7 @@ def crossover(tt1, tt2):
         if(len(missing_h2)>0):
             for d in range(n_days):
                 for s in range(n_slots):
-                    if(t.is_slot_available(t.req_all, new_h2, c, d, s, missing_h2[0])):
+                    if(t.is_slot_available(t.req_single, new_h2, c, d, s, missing_h2[0])):
                         new_h2 = t.assign(new_h2, c, d, s, missing_h2[0])
                         req_h2.append(missing_h2[0])
                         missing_h2.pop(0)
@@ -107,15 +107,15 @@ def crossover(tt1, tt2):
 def mutate(tt):
     n_classes, n_days, n_slots, n_maxlecsperslot = tt.shape
     #take some random requirement
-    req_id=random.randint(0,len(t.req_all)-1)
+    req_id=random.randint(0, len(t.req_single) - 1)
     #Here, in order to mutate I just pick up 1 requirement, and schedule it in an empty slot.
     #Step 1. Delete the requirement from the tt
     tt[tt == req_id] = np.nan
-    c=t.req_all.loc[req_id, 'classId']
+    c=t.req_single.loc[req_id, 'classId']
     assigned=0
     for d in range(n_days):
         for s in range(n_slots):
-            if (t.is_slot_available(t.req_all, tt, c, d, s, req_id)):
+            if (t.is_slot_available(t.req_single, tt, c, d, s, req_id)):
                 tt = t.assign(tt, c, d, s, req_id)
                 assigned=1
                 break
