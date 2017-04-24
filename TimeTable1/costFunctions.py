@@ -98,7 +98,8 @@ def class_batch_overlap(timetable, req_all):
                     # 3. Loop over all batches in batch_list. If any batch does'nt belong to this list, cost incremented
                     batch_id = batch_list[0]
                     batches_can_overlap = f_batch_can_overlap[f_batch_can_overlap['batchId'] == batch_id]
-                    batches_all = batches_can_overlap[batches_can_overlap.columns[2:3]] # get batch_can_overlap column                    batches_all_list = batches_all['batchOverlapId'].tolist()
+                    batches_all = batches_can_overlap[batches_can_overlap.columns[2:3]] # get batch_can_overlap colum
+                    batches_all_list = batches_all['batchOverlapId'].tolist()
                     batches_all_list.append(batch_id)
                     for batch in batch_list:
                         if batch not in batches_all_list:
