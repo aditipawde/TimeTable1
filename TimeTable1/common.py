@@ -4,8 +4,6 @@ import random
 import numpy as np
 import costFunctions as cf
 
-
-
 def get_all_requirements ():
     "Joins scheduling requirements of theory and lab for all classes"
 

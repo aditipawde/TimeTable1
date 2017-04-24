@@ -88,8 +88,7 @@ def class_batch_overlap(timetable, req_all):
 
                 # If the same class is repeated in the class_list for the same sub-slot, increment cost
                 if len(class_list) > 1 :        # Cost will be incremented only if multiple classes in same sub-slot
-                    for class_id in class_list:
-                        class_cost = class_cost + class_list.count(class_id) - 1
+                    for class_id in class_list:                        class_cost = class_cost + class_list.count(class_id) - 1
 
                 if len(batch_list)>1:           # Cost will be incremented only if multiple batches in same sub-slot
                     for batch_id in batch_list:             # In case same batch is slotted more than once in sub slot
@@ -99,8 +98,7 @@ def class_batch_overlap(timetable, req_all):
                     # 3. Loop over all batches in batch_list. If any batch does'nt belong to this list, cost incremented
                     batch_id = batch_list[0]
                     batches_can_overlap = f_batch_can_overlap[f_batch_can_overlap['batchId'] == batch_id]
-                    batches_all = batches_can_overlap[batches_can_overlap.columns[2:3]] # get batch_can_overlap column
-                    batches_all_list = batches_all['batchOverlapId'].tolist()
+                    batches_all = batches_can_overlap[batches_can_overlap.columns[2:3]] # get batch_can_overlap column                    batches_all_list = batches_all['batchOverlapId'].tolist()
                     batches_all_list.append(batch_id)
                     for batch in batch_list:
                         if batch not in batches_all_list:
@@ -108,6 +106,7 @@ def class_batch_overlap(timetable, req_all):
 
     return class_cost + batch_cost
 
+  
 ## To be tested
 
 def getting_lunch_break (timetable, n_days, n_slots, n_classes):
@@ -123,6 +122,19 @@ def getting_lunch_break (timetable, n_days, n_slots, n_classes):
 
     return lunch_break_cost;
 
+def req_missing(timetable, req_all):
+    n_classes, n_days, n_slots, n_maxlecsperslot = timetable.shape
+    penalty=0
+    for c in range(n_classes):
+        req_for_c = req_all.loc[req_all['classId'] == c]
+        s = np.unique(timetable[c])
+        missing = [x for x in req_for_c.index if x not in s]
+        penalty=penalty+len(missing)
+        if(len(missing)>0):
+            print(c, len(missing))
+    return penalty
+
+
 ## To be tested
 
 def subject_on_same_day (timetable, req_all, classId, n_days, n_slots):
@@ -134,12 +146,6 @@ def subject_on_same_day (timetable, req_all, classId, n_days, n_slots):
 
 
     print(subjects);
-
-
-#def get_teacher_workload_cost (timetable, req_all):
-#    "Checks if teacher workload is within maxHrs and minHrs"
-
-#    teacher_req = req_all['teacherId' =t]
 
 
 def get_cost(tt, req_all, n_classes, n_days, n_slots, max_theory, max_lab):
