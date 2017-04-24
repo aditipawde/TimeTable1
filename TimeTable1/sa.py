@@ -1,4 +1,4 @@
-import main_adi as m
+import common as m
 import costFunctions as cf
 import math 
 import random
@@ -28,7 +28,7 @@ max_theory = len(theory_group);
 max_lab = len(lab_group);
 
 # Select initial solution
-tt_initial = m.generate_random_tt(req_all, n_days, n_slots, n_lec_per_slot, n_classes);
+tt_initial = m.create_random_timetable(n_classes, n_days, n_slots, n_lec_per_slot, req_all);
 #print(tt_initial[2,:,:,:])
 
 n_repetitions = 10;

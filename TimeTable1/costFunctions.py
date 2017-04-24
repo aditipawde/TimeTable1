@@ -81,7 +81,7 @@ def class_batch_overlap(timetable, req_all):
                 for sub_slot in slot_array:
                     if not np.isnan(sub_slot):
                         req = req_all.loc[req_all.index == sub_slot]
-                        if req.iloc[0]['category'] == 'T':        # Class clash can be removed
+                        if req.iloc[0]['category'] == 'T':        
                             class_list.append(req.iloc[0]['classId'])
                         elif req.iloc[0]['category'] == 'L':
                             batch_list.append(req.iloc[0]['batchId'])

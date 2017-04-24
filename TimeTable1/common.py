@@ -30,6 +30,8 @@ def get_all_requirements ():
     req_all = pd.DataFrame(index=range(int(totallectures_list.sum())), columns=list(f_subjectBatchClassTeacher))
     j = 0
 
+   
+
     for i in range(len(req_all)):
         if((f_subjectBatchClassTeacher.iloc[j]['totalHrs']/f_subjectBatchClassTeacher.iloc[j]['eachSlot'])>0):
             req_all.loc[[i]] = f_subjectBatchClassTeacher.iloc[[j]].values
@@ -37,6 +39,8 @@ def get_all_requirements ():
 
         if (f_subjectBatchClassTeacher.iloc[j]['totalHrs'] == 0):
             j = j + 1
+
+    req_all.insert(len(req_all.columns), 'isScheduled', 0); ##Newly added -- Aditi
 
     return req_all;
 
@@ -133,7 +137,6 @@ def is_slot_available(req_all, timetable_np, c, r_day, r_slot, req_id):
             return False
 
 
-
 def assign(timetable_np, req_all, c, r_day, r_slot, req_id):
     SlotRequirement = int(req_all.loc[req_id, 'eachSlot'])
     for i in range(SlotRequirement):  # Slotting the lecture for given number of hours
@@ -154,3 +157,49 @@ def get_room_groups(lab_group, theory_group):
             theory_group.append(f_room.iloc[i]['roomId']);
         else:
             lab_group.append(f_room.iloc[i]['roomId']);
+
+
+
+## Required for SA
+def swap_neighbourhood (tt, req_all, n_days, n_slots, n_lec_per_slot):
+    "Searches neighbourhood for swapping and returns modified timetable"
+
+    max_swaps = 50
+
+    for class_id in set(req_all.classId):
+
+        i = 0
+        while(i < max_swaps):
+
+            # Choose 1 slot randomly
+            r_day1 = random.randint(0,n_days-1)
+            r_slot1 = random.randint(0, n_slots-1)
+            r_lecnumber1 = random.randint(0, n_lec_per_slot-1)
+            r_isEmpty1 = np.isnan(np.sum(tt[class_id, r_day1, r_slot1, r_lecnumber1]))
+
+
+            # Choose another slot randomly
+            r_day2 = random.randint(0,n_days-1)
+            r_slot2 = random.randint(0, n_slots-1)
+            r_lecnumber2 = random.randint(0, n_lec_per_slot-1)
+            r_isEmpty2 = np.isnan(np.sum(tt[class_id, r_day2, r_slot2, r_lecnumber2]))
+
+
+            # Slot 1 is empty and 2 is not -- move requirement of 2 to 1
+            if (r_isEmpty1 and not r_isEmpty2):
+                tt[class_id, r_day1, r_slot1, r_lecnumber1] = tt[class_id, r_day2, r_slot2, r_lecnumber2]
+                i += 1
+
+            # Slot 2 is empty and 1 is not -- move requirement of 1 to 2
+            if (not r_isEmpty1 and r_isEmpty2):
+                tt[class_id, r_day2, r_slot2, r_lecnumber2] = tt[class_id, r_day1, r_slot1, r_lecnumber1]
+                i += 1
+
+            # If both are not empty, swap them
+            if (not r_isEmpty1 and not r_isEmpty2):
+                temp_req =  tt[class_id, r_day1, r_slot1, r_lecnumber1]
+                tt[class_id, r_day1, r_slot1, r_lecnumber1] = tt[class_id, r_day2, r_slot2, r_lecnumber2]
+                tt[class_id, r_day2, r_slot2, r_lecnumber2] = temp_req
+                i += 1
+
+    return tt;

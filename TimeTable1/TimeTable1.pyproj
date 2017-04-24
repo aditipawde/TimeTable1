@@ -31,14 +31,14 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="main.py" />
-    <Compile Include="main_adi.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="costFunctions.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="main_ravina.py" />
     <Compile Include="main_ravina2.py" />
+    <Compile Include="ravina_random.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="sa.py">
       <SubType>Code</SubType>
     </Compile>
