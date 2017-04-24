@@ -147,8 +147,7 @@ def separate_theory_lectures(timetable, req_all, classId, n_days, n_slots):
     return timetable;
             
 
-def shift_to_empty_slot (timetable, req_all, n_class, n_days, n_slots):
-    "Shifts lectures to empty slot"
+
        
 def swap_neighbor(timetable, req_all, n_class, n_days, n_slots):
     "Swaps neighbors ot find better timetable"
@@ -172,7 +171,12 @@ test_class_Id = 2
 
 # Get all scheduling requirements
 req_all = m.get_all_requirements();
-#print(req_all)
+print(req_all)
+
+
+
+timetable = create_random_tt_batches_first(req_all, n_classes,n_days,n_slots, n_lec_per_slot);
+print(timetable[test_class_Id, :, :, :])
 
 
 #req_th = req_all.loc[req_all['category'] == 'T']
@@ -181,30 +185,37 @@ req_all = m.get_all_requirements();
 #print("Requiremnets for give class are:")
 #print(req_for_given_class)
 
+## Get number of classes to be scheduled -- may differ from actual number of classes
+#classes_tobe_scheduled = set(req_all.classId);
+##n_classes = len(classes_tobe_scheduled);
 
-# Create room groups -- used in cost claculations and final room allocation
-lab_group = []
-theory_group = []
+##print(n_classes);
 
-m.get_room_groups(lab_group, theory_group);
-max_theory = len(theory_group);
-max_lab = len(lab_group);
+## Create room groups -- used in cost claculations and final room allocation
+#lab_group = []
+#theory_group = []
 
-# Select initial solution
-tt_initial = m.create_random_timetable (n_classes, n_days, n_slots, n_lec_per_slot, req_all);
-print("Initial TT");
+#m.get_room_groups(lab_group, theory_group);
+#max_theory = len(theory_group);
+#max_lab = len(lab_group);
 
-print("Initial cost:")
-print(cf.get_cost(tt_initial, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
+## Select initial solution
+#tt_initial = m.create_random_timetable (n_classes, n_days, n_slots, n_lec_per_slot, req_all);
+#print("Initial TT");
 
-#new_tt = reduce_batch_class_overlap(tt_initial, req_all, test_class_Id, n_days, n_slots)
-new_tt = swap_neighbor (tt_initial, req_all, n_classes, n_days, n_slots);
 
-print("New TT");
-print(new_tt[test_class_Id, :, :, :])
 
-print("New cost:")
-print(cf.get_cost(new_tt, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
+#print("Initial cost:")
+#print(cf.get_cost(tt_initial, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
+
+##new_tt = reduce_batch_class_overlap(tt_initial, req_all, test_class_Id, n_days, n_slots)
+#new_tt = swap_neighbor (tt_initial, req_all, n_classes, n_days, n_slots);
+
+#print("New TT");
+#print(new_tt[test_class_Id, :, :, :])
+
+#print("New cost:")
+#print(cf.get_cost(new_tt, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
 
 #nn = cf.subject_on_same_day (new_tt, req_all, test_class_Id,  n_days, n_slots);
 
@@ -217,5 +228,7 @@ print(cf.get_cost(new_tt, req_all, n_classes, n_days, n_slots, max_theory, max_l
 #print(cf.get_cost(tt_new, req_all, n_days, n_slots, max_theory, max_lab));
 
 
+#f_batch_can_overlap = da.initialize('batchcanoverlap');
+#print(f_batch_can_overlap);
 
 
