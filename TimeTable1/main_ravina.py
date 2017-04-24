@@ -5,7 +5,6 @@ import numpy as np
 max_theory_roomgroup=10
 max_lab_roomgroup=10
 
-
 def find_first_nan(vec):
     """return the index of the first occurence of item in vec"""
     for i in xrange(len(vec)):
@@ -58,15 +57,18 @@ def is_slot_available(req_all, timetable_np, c, r_day, r_slot, req_id, theory_ro
                 #Check room group availability
                 if(lab_roomgroup[r_day, r_slot]>=max_lab_roomgroup):
                     return False
+            #
+            # #Condition 3: Check if the parallel lecture is T/L. No T-L or L-T lectures can take place parallely
+            # if(req_all.loc[req_id,'category']=='T'): cat_not_allowed='L'
+            # else: cat_not_allowed='T'
+            # req_list= timetable_np[int(c), r_day, r_slot+i, :]  #Fetch the requirement records of the selected values
+            # if(not np.isnan(np.sum(req_list))):
+            #     if(cat_not_allowed in req_all.loc[set(req_list), 'category']):   #Allow only if there is another lecture of same type, or no lecture at all
+            #         return False
+            #     else:
+            #         SlotsAvailable = SlotsAvailable + 1
+            SlotsAvailable = SlotsAvailable + 1
 
-            #Condition 3: Check if the parallel lecture is T/L. No T-L or L-T lectures can take place parallely
-            if(req_all.loc[req_id,'category']=='T'): cat_not_allowed='L'
-            else: cat_not_allowed='T'
-            req_list= timetable_np[int(c), r_day, r_slot+i, :]  #Fetch the requirement records of the selected values
-            if(not np.isnan(np.sum(req_list))):
-                if(cat_not_allowed in req_all.loc[set(req_list), 'category']):   #Allow only if there is another lecture of same type, or no lecture at all
-                    return False
-                SlotsAvailable = SlotsAvailable + 1
         if(SlotsAvailable==SlotRequirement):
             return True
         else:
@@ -81,58 +83,50 @@ def assign(timetable_np, c, r_day, r_slot, req_id, req_all, theory_roomgroup, la
             theory_roomgroup[r_day, r_slot] = theory_roomgroup[r_day, r_slot]+1
         else:
             lab_roomgroup[r_day, r_slot] = lab_roomgroup[r_day, r_slot] + 1
-    return timetable_np
+    return timetable_np, theory_roomgroup, lab_roomgroup
 
 def create_random_timetable(n_classes, n_days, n_slots, n_maxlecsperslot, req_all):
     timetable_np = np.empty((n_classes, n_days, n_slots, n_maxlecsperslot)) * np.nan
     theory_roomgroup=np.zeros((n_days, n_slots))
     lab_roomgroup = np.zeros((n_days, n_slots))
-    # print(timetable_np)
+    req_all['isAssigned']=False
     f_batch_can_overlap = da.initialize('batchcanoverlap').astype(int)
     batch_sets=get_groups_of_batches(f_batch_can_overlap)
     max_tries=n_days*n_slots
-    flatten = lambda batch_sets: [item for sublist in batch_sets for item in sublist]
-    batch_sets_f=flatten(batch_sets)
-    req_batch=req_all[req_all['batchId'].isin(batch_sets_f)]
-    req_single=req_all[~req_all['batchId'].isin(batch_sets_f)]
 
-    for c in (set(req_batch.classId)):  # First take one class
-        req_forgivenclass = req_batch.loc[req_batch['classId'] == c]  # List all the requirements for that class in req_forgivenclass
-        req_forgivenclass = req_forgivenclass.sort('eachSlot', ascending=False)
-        req_set = req_forgivenclass.index
-        for i in range(len(batch_sets)):
-            if(set(batch_sets[i]) < set(req_set)):   #Check if the batch set is a subset of the req set. If yes, Now we have to scedule this bunch of requirements.
-                notassigned = len(batch_sets[i])
-                n_tries=0
-                while (notassigned > 0 and n_tries<max_tries):  # Keep on scheduling till not found
-                    n_tries=n_tries+1
-                    r_day = random.randint(0, n_days - 1)
-                    r_slot = random.randint(0, n_slots - 1)
-                    for j in range(len(batch_sets[i])):
-                        req=batch_sets[i][j]
-                        if (is_slot_available(req_batch, timetable_np, c, r_day, r_slot, req, theory_roomgroup, lab_roomgroup)):
-                            timetable_np = assign(timetable_np, int(c), r_day, r_slot, req, req_all)
-                            notassigned = notassigned-1
-                    if(notassigned>0 and n_tries<max_tries):
-                        #Then Undo all the assignments
-                        for j in range(len(batch_sets[i])):
-                            req = batch_sets[i][j]
-                            if req in timetable_np:
-                                timetable_np[timetable_np == req] = np.nan
-                                notassigned=notassigned+1
+    for c in (set(req_all.classId)):  # First take one class
+        req_class=req_all[(req_all['batchId'] != '-') & (req_all['classId'] == c)]
+        for s in (set(req_class.subjectId)):
+            req_subject=req_class[(req_class['subjectId'] == s)]
+            for h in (set(req_subject.totalHrs)):
+                req_hrs = req_subject[(req_subject['totalHrs'] == h)]
+                for x in batch_sets:
+                    req_batchset=set(req_hrs['batchId'].astype(int))
+                    if(req_batchset<set(x)): #Then we can schedule that group of batches
+                        req_set=req_hrs.index   #1. Get the requirements
+                        r_day = random.randint(0, n_days - 1)   #2. Get the day and slot
+                        r_slot = random.randint(0, n_slots - 1)
+                        for i in req_set:  #Schedule each of these requirements
+                            if (is_slot_available(req_all, timetable_np, c, r_day, r_slot, i, theory_roomgroup, lab_roomgroup)):
+                                timetable_np, theory_roomgroup, lab_roomgroup = assign(timetable_np, int(c), r_day,
+                                                                                           r_slot, i, req_all, theory_roomgroup, lab_roomgroup)
+                                req_all.set_value(i, 'isAssigned', True)
 
+    req_single = req_all[req_all['isAssigned']==False]
     for c in (set(req_single.classId)):  # First take one class
         req_forgivenclass = req_single.loc[req_single['classId'] == c]  # List all the requirements for that class in req_forgivenclass
         req_forgivenclass=req_forgivenclass.sort('eachSlot', ascending=False)
         req_set=req_forgivenclass.index
-        for i in range(len(req_set)):  # Schedule each of these requirements
-            req=req_set[i]
+        for req in (req_set):  # Schedule each of these requirements
             notassigned = 1
-            while (notassigned == 1):  # Keep on scheduling till not found
+            n_tries=0
+            while (notassigned == 1 and n_tries<max_tries):  # Keep on scheduling till not found
+                n_tries=n_tries+1
                 r_day = random.randint(0,n_days-1)
                 r_slot = random.randint(0,n_slots-1)
-                if (is_slot_available(req_single, timetable_np, c, r_day, r_slot, req, theory_roomgroup, lab_roomgroup)):
-                    timetable_np=assign(timetable_np, int(c), r_day, r_slot, req, req_all)
+                if (is_slot_available(req_all, timetable_np, c, r_day, r_slot, req, theory_roomgroup, lab_roomgroup)):
+                    timetable_np, theory_roomgroup, lab_roomgroup=assign(timetable_np, int(c), r_day, r_slot, req, req_all, theory_roomgroup, lab_roomgroup)
+                    req_all.set_value(req, 'isAssigned', True)
                     notassigned = 0
     return timetable_np
 
