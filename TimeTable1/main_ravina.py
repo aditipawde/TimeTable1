@@ -2,211 +2,169 @@ import dataAccessSQLAlchemy as da
 import pandas as pd
 import random
 import numpy as np
-import common
-
-#def isSlotAvailable(req_all, timetable_np, c, r_day, r_slot, r_lecnumber, req_id):
-#    #If slot is of duration 1
-#    SlotsAvailable = 0
-#    SlotRequirement=int(req_all.loc[req_id, 'eachSlot'])
-#    print(SlotRequirement)
-#    for i in range(SlotRequirement): #Fetching how many lectures do we require to slot
-#        if(np.isnan(np.sum(timetable_np[int(c), r_day, r_slot+i, r_lecnumber]))):  # Check if that slot is empty, this way of using np.isnan is the fastest way of doing so
-#            req = req_all.loc[req_all.index == req_id]
-#            if(req.loc[req_id,'category']=='T'): cat='L'
-#            else: cat='T'
-#            req_list= timetable_np[int(c), r_day, r_slot+i, :]
-#             #Fetch the requirement records of the selected values
-#            if(not np.isnan(np.sum(req_list))):
-#                if(cat in req_all.loc[set(req_list), 'category']):   #Allow only if there is another lecture of same type, or no lecture at all
-#                    SlotsAvailable=SlotsAvailable+1
-#            else:
-#                SlotsAvailable = SlotsAvailable + 1
-#        else:
-#            break
-#    if(SlotsAvailable==SlotRequirement):
-#        return True
-#    else:
-#        return False
-
-def initialize_population(p):
-    P=None*p
-    for i in range(p):
-        tt = create_random_timetable(n_classes=14, n_days=5, n_slots=10, n_maxlecsperslot=4, req_all=req_all)
-        P[i]=tt
-    return P
-
-def find_fitness(h):
-    max_penalty=100
-    penalty=1*teacher_overlap(h)+ 1*class_batch_overlap(h)
-    fitness=penalty-max_penalty
-    return fitness
-
-def crossover(tt1, tt2):
-    n_classes, n_days, n_slots, n_maxlecsperslot = tt1.shape
-    new_h1= np.empty((n_classes, n_days, n_slots, n_maxlecsperslot)) * np.nan
-    new_h2 = np.empty((n_classes, n_days, n_slots, n_maxlecsperslot)) * np.nan
-#    for c in range(n_classes):
-#        for d in range(n_days):
-
-    return new_h1, new_h2
-
-def mutate(tt):
-    n_classes, n_days, n_slots, n_maxlecsperslot = tt.shape
-    c=random.randint(n_classes)
-#    r1=req_all[]
-    return tt
-
-def run_genetic(Fitness, Fitness_Threshold, p, r, m):
-    P=initialize_population(p)
-    Fitness_P=np.empty(p)
-    i=0
-    for h in P:
-        Fitness_P[i]=find_fitness(h)
-        i = i + 1
-    while(np.max(Fitness_P)<Fitness_Threshold):
-        P_s=None*p
-        #SELECT PHASE
-        retained_population=int((1-r)*p)
-        weighted_list=[]
-        for j in range(p):
-            weighted_list.append([j] * Fitness_P[j])
-        for j in range(retained_population):
-            weighted_random_tt=random.choice(weighted_list)
-            P_s[j]=P[weighted_random_tt]
-
-        #CROSSOVER PHASE
-        for j in range(retained_population, p, 2):
-            h1=ra-ndom.choice(weighted_list)
-            h2=random.choice(weighted_list)
-            new_h1, new_h2=crossover(P[h1], P[h2])
-
-        #MUTATE PHASE
-        for j in range(r*p):    #Mutate rp of all TTs
-            tt_mutate=random.choice(weighted_list)
-            P_s[tt_mutate]=mutate(P_s[tt_mutate])
-
-        #UPDATE PHASE
-
-        #EVALUATE PHASE
-
-    return
+max_theory_roomgroup=10
+max_lab_roomgroup=10
 
 
+def find_first_nan(vec):
+    """return the index of the first occurence of item in vec"""
+    for i in xrange(len(vec)):
+        if(np.isnan(vec[i])):
+            return i
+    return -1
 
+def get_groups_of_batches(f_batch_can_overlap):
+    lists = (f_batch_can_overlap.drop('bo', axis=1)).values.tolist()
+    resultslist = []  # Create the empty result list.
 
-#def teacher_overlap(timetable):
-#    teacher_cost = 0
-#    n_classes, n_days, n_slots, n_maxlecsperslot=timetable.shape
-#    print (timetable.shape)
-#    for day in range(n_days):
-#        for slot in range (n_slots):
-#            temp_array = timetable[:, day, slot, :]
-#            teacher_list = []
-#            print(temp_array)
-#            for row in temp_array:
-#                for cell in row:
-#                    if not np.isnan(cell):
-#                        req = req_all.loc[req_all.index == cell]
-#                        teacher_list.append(req.iloc[0]['teacherId'])
-#            for teacher_id in teacher_list:
-#                if teacher_id is not None:
-#                    teacher_cost = teacher_cost + teacher_list.count(teacher_id) - 1
+    if len(lists) >= 1:  # If your list is empty then you dont need to do anything.
+        resultlist = [lists[0]]  # Add the first item to your resultset
+        if len(lists) > 1:  # If there is only one list in your list then you dont need to do anything.
+            for l in lists[1:]:  # Loop through lists starting at list 1
+                listset = set(l)  # Turn you list into a set
+                merged = False  # Trigger
+                for index in range(len(resultlist)):  # Use indexes of the list for speed.
+                    rset = set(resultlist[index])  # Get list from you resultset as a set
+                    if len(
+                                    listset & rset) != 0:  # If listset and rset have a common value then the len will be greater than 1
+                        resultlist[index] = list(
+                            listset | rset)  # Update the resultlist with the updated union of listset and rset
+                        merged = True  # Turn trigger to True
+                        break  # Because you found a match there is no need to continue the for loop.
+                if not merged:  # If there was no match then add the list to the resultset, so it doesnt get left out.
+                    resultlist.append(l)
+    return resultlist
 
-#    return teacher_cost
+def is_slot_available(req_all, timetable_np, c, r_day, r_slot, req_id, theory_roomgroup, lab_roomgroup):
+    #If slot is of duration 1
+    n_classes, n_days, n_slots, n_maxlecsperslot = timetable_np.shape
+    SlotsAvailable = 0
+    SlotRequirement=int(req_all.loc[int(req_id), 'eachSlot'])
+    #print(SlotRequirement)
+    if(n_slots-r_slot < SlotRequirement):
+        return False
+    else:
+        for i in range(SlotRequirement): #Fetching how many lectures do we require to slot
+            j = find_first_nan(timetable_np[int(c), r_day, r_slot + i, :])
+            #Condition 1: Check if consecutive lectures are available
+            if(j==-1):
+                return False
+            #Condition 2: Check if rooms are available
+            if (req_all.loc[req_id, 'category'] == 'T'):
+                #Check room group availability
+                if(theory_roomgroup[r_day, r_slot]>=max_theory_roomgroup):
+                    return False
+            else: #i.e. category==L
+                #Check room group availability
+                if(lab_roomgroup[r_day, r_slot]>=max_lab_roomgroup):
+                    return False
 
-#def class_batch_overlap(timetable):
-#    class_cost = 0
-#    batch_cost = 0
-#    n_classes, n_days, n_slots, n_maxlecsperslot=timetable.shape
-#    for cl in range(n_classes):
-#        for day in range(n_days):
-#            for slot in range(n_slots):
-#                class_list = []
-#                batch_list = []
-#                slot_array = timetable[cl,day,slot,:]
-#                for sub_slot in slot_array:
-#                    if not np.isnan(sub_slot):
-#                        req = req_all.loc[req_all.index == sub_slot]
-#                        if (req.iloc[0]['category'] == 'T'):
-#                            class_list.append(req.iloc[0]['classId'])
-#                        elif req.iloc[0]['category'] == 'L':
-#                            batch_list.append(req.iloc[0]['batchId'])
+            #Condition 3: Check if the parallel lecture is T/L. No T-L or L-T lectures can take place parallely
+            if(req_all.loc[req_id,'category']=='T'): cat_not_allowed='L'
+            else: cat_not_allowed='T'
+            req_list= timetable_np[int(c), r_day, r_slot+i, :]  #Fetch the requirement records of the selected values
+            if(not np.isnan(np.sum(req_list))):
+                if(cat_not_allowed in req_all.loc[set(req_list), 'category']):   #Allow only if there is another lecture of same type, or no lecture at all
+                    return False
+                SlotsAvailable = SlotsAvailable + 1
+        if(SlotsAvailable==SlotRequirement):
+            return True
+        else:
+            return False
 
-#                for class_id in class_list:
-#                    class_cost = class_cost + class_list.count(class_id)-1
+def assign(timetable_np, c, r_day, r_slot, req_id, req_all, theory_roomgroup, lab_roomgroup):
+    SlotRequirement = int(req_single.loc[req_id, 'eachSlot'])
+    for i in range(SlotRequirement):  # Slotting the lecture for given number of hours
+        j=find_first_nan(timetable_np[c, r_day, r_slot+i, :])
+        timetable_np[c, r_day, r_slot + i, j]=req_id
+        if (req_all.loc[req_id, 'category'] == 'T'):
+            theory_roomgroup[r_day, r_slot] = theory_roomgroup[r_day, r_slot]+1
+        else:
+            lab_roomgroup[r_day, r_slot] = lab_roomgroup[r_day, r_slot] + 1
+    return timetable_np
 
-#                for batch_id in batch_list:
-#                    batches_can_overlap = f_batch_can_overlap[f_batch_can_overlap['batchId']==batch_id]
-#                    batches = batches_can_overlap['batchOverlapId']
-#                    print(batches)
-#                    for batch in batch_list:
-#                        batch_cost = batch_cost + batch_list.count(batch_id) - 1
+def create_random_timetable(n_classes, n_days, n_slots, n_maxlecsperslot, req_all):
+    timetable_np = np.empty((n_classes, n_days, n_slots, n_maxlecsperslot)) * np.nan
+    theory_roomgroup=np.zeros((n_days, n_slots))
+    lab_roomgroup = np.zeros((n_days, n_slots))
+    # print(timetable_np)
+    f_batch_can_overlap = da.initialize('batchcanoverlap').astype(int)
+    batch_sets=get_groups_of_batches(f_batch_can_overlap)
+    max_tries=n_days*n_slots
+    flatten = lambda batch_sets: [item for sublist in batch_sets for item in sublist]
+    batch_sets_f=flatten(batch_sets)
+    req_batch=req_all[req_all['batchId'].isin(batch_sets_f)]
+    req_single=req_all[~req_all['batchId'].isin(batch_sets_f)]
 
-#    #print(batch_cost)
-#    #print(class_cost)
-#    return (class_cost + batch_cost)
+    for c in (set(req_batch.classId)):  # First take one class
+        req_forgivenclass = req_batch.loc[req_batch['classId'] == c]  # List all the requirements for that class in req_forgivenclass
+        req_forgivenclass = req_forgivenclass.sort('eachSlot', ascending=False)
+        req_set = req_forgivenclass.index
+        for i in range(len(batch_sets)):
+            if(set(batch_sets[i]) < set(req_set)):   #Check if the batch set is a subset of the req set. If yes, Now we have to scedule this bunch of requirements.
+                notassigned = len(batch_sets[i])
+                n_tries=0
+                while (notassigned > 0 and n_tries<max_tries):  # Keep on scheduling till not found
+                    n_tries=n_tries+1
+                    r_day = random.randint(0, n_days - 1)
+                    r_slot = random.randint(0, n_slots - 1)
+                    for j in range(len(batch_sets[i])):
+                        req=batch_sets[i][j]
+                        if (is_slot_available(req_batch, timetable_np, c, r_day, r_slot, req, theory_roomgroup, lab_roomgroup)):
+                            timetable_np = assign(timetable_np, int(c), r_day, r_slot, req, req_all)
+                            notassigned = notassigned-1
+                    if(notassigned>0 and n_tries<max_tries):
+                        #Then Undo all the assignments
+                        for j in range(len(batch_sets[i])):
+                            req = batch_sets[i][j]
+                            if req in timetable_np:
+                                timetable_np[timetable_np == req] = np.nan
+                                notassigned=notassigned+1
 
-#def create_random_timetable(n_classes, n_days, n_slots, n_maxlecsperslot, req_all):
-#    timetable_np = np.empty((n_classes, n_days, n_slots, n_maxlecsperslot)) * np.nan
-#    # print(timetable_np)
-#    for c in (set(req_all.classId)):  # First take one class
-#        # print(c)
-#        # http://stackoverflow.com/questions/17071871/select-rows-from-a-dataframe-based-on-values-in-a-column-in-pandas
-#        req_forgivenclass = req_all.loc[
-#            req_all['classId'] == c]  # List all the requirements for that class in req_forgivenclass
-#        # print(req_forgivenclass)
-#        # print(set(req_forgivenclass.index))     #These are the indices of the requirements for this class
-#        for req in set(req_forgivenclass.index):  # Schedule each of these requirements
-#            notassigned = 1
-#            while (notassigned == 1):  # Keep on scheduling till not found
-#                r_day = random.randint(n_days)
-#                r_slot = random.randint(n_slots)
-# #               r_lecnumber = next(lec_num for lec_num in n_maxlecsperslot if timetable_np[int(c), r_day, r_slot, lec_num] is None, None)
-#                if (isSlotAvailable(req_all, timetable_np, c, r_day, r_slot, req)):
-# #                   timetable_np=assigntimetable_np[int(c), r_day, r_slot, r_lecnumber] = req
-#                    notassigned = 0
-#    return timetable_np
+    for c in (set(req_single.classId)):  # First take one class
+        req_forgivenclass = req_single.loc[req_single['classId'] == c]  # List all the requirements for that class in req_forgivenclass
+        req_forgivenclass=req_forgivenclass.sort('eachSlot', ascending=False)
+        req_set=req_forgivenclass.index
+        for i in range(len(req_set)):  # Schedule each of these requirements
+            req=req_set[i]
+            notassigned = 1
+            while (notassigned == 1):  # Keep on scheduling till not found
+                r_day = random.randint(0,n_days-1)
+                r_slot = random.randint(0,n_slots-1)
+                if (is_slot_available(req_single, timetable_np, c, r_day, r_slot, req, theory_roomgroup, lab_roomgroup)):
+                    timetable_np=assign(timetable_np, int(c), r_day, r_slot, req, req_all)
+                    notassigned = 0
+    return timetable_np
 
-#print("Welcome");
+print("Welcome");
 
-#f_subject_subjectClassTeacher = da.execquery('select s.subjectId, subjectShortName, totalHrs, eachSlot, c.classId, teacherId from subject s, subjectClassTeacher c where s.subjectId = c.subjectId;')
-#f_subject_subjectClassTeacher.insert(5,'batchId','-')
-#f_subject_subjectClassTeacher.insert(6,'category','T') #T for theory
-#f_subject_subjectBatchTeacher = da.execquery('select s.subjectId, subjectShortName, totalHrs, eachSlot, sbt.batchId, bc.classId, teacherId from subject s, subjectBatchTeacher sbt, batchClass bc where s.subjectId = sbt.subjectId AND sbt.batchId = bc.batchId;')
-#f_subject_subjectBatchTeacher.insert(6,'category','L') #L for Lab
-#f_subjectBatchClassTeacher = pd.concat([f_subject_subjectClassTeacher, f_subject_subjectBatchTeacher])
-#f_batch_can_overlap = da.execquery('select batchId, batchOverlapId from batchCanOverlap;')
+f_subject_subjectClassTeacher = da.execquery('select s.subjectId, subjectShortName, totalHrs, eachSlot, c.classId, teacherId from subject s, subjectClassTeacher c where s.subjectId = c.subjectId;')
+f_subject_subjectClassTeacher.insert(5,'batchId','-')
+f_subject_subjectClassTeacher.insert(6,'category','T') #T for theory
+f_subject_subjectBatchTeacher = da.execquery('select s.subjectId, subjectShortName, totalHrs, eachSlot, sbt.batchId, bc.classId, teacherId from subject s, subjectBatchTeacher sbt, batchClass bc where s.subjectId = sbt.subjectId AND sbt.batchId = bc.batchId;')
+f_subject_subjectBatchTeacher.insert(6,'category','L') #L for Lab
+f_subjectBatchClassTeacher = pd.concat([f_subject_subjectClassTeacher, f_subject_subjectBatchTeacher])
+f_batch_can_overlap = da.execquery('select batchId, batchOverlapId from batchCanOverlap;')
 #print(f_batch_can_overlap)
-#x = f_subjectBatchClassTeacher
-#x = x.reset_index()
+x = f_subjectBatchClassTeacher
+x = x.reset_index()
 
-#totallectures_list = (x['totalHrs'] / x['eachSlot'])
-## Create empty dataframe to save all the requirements
-#req_all = pd.DataFrame(index=range(int(totallectures_list.sum())), columns=list(x))
-#j = 0
-#for i in range(len(req_all)):
-#    if((x.iloc[j]['totalHrs']/x.iloc[j]['eachSlot'])>0):
-#        req_all.loc[[i]] = x.iloc[[j]].values
-#        x.set_value(j,'totalHrs', x.loc[j]['totalHrs'] - x.loc[j]['eachSlot'])
-#    if (x.iloc[j]['totalHrs'] == 0):
-#        j = j + 1
+totallectures_list = (x['totalHrs'] / x['eachSlot'])
+# Create empty dataframe to save all the requirements
+req_single = pd.DataFrame(index=range(int(totallectures_list.sum())), columns=list(x))
+j = 0
+for i in range(len(req_single)):
+    if((x.iloc[j]['totalHrs']/x.iloc[j]['eachSlot'])>0):
+        req_single.loc[[i]] = x.iloc[[j]].values
+        x.set_value(j,'totalHrs', x.loc[j]['totalHrs'] - x.loc[j]['eachSlot'])
+    if (x.iloc[j]['totalHrs'] == 0):
+        j = j + 1
+
+req_single = req_single.rename(columns={'index': 'id'})
 #print(req_all)
 #These were attempts to convert float values in reqall to int
 #req_all[['classId','eachSlot', 'subjectId', 'totalHrs']] = req_all[['classId','eachSlot', 'subjectId', 'totalHrs']].apply(pd.to_numeric)
 #req_all=req_all.apply(pd.to_numeric, errors='ignore')
 
-req_all = common.get_all_requirements();
-
 #These values need to be calculated from the database
-tt1=common.create_random_timetable(n_classes=14, n_days=5, n_slots=10, n_maxlecsperslot=4, req_all=req_all)
-
-#teacher_cost = teacher_overlap(tt1)
-#print("Teacher cost:")
-#print(teacher_cost);
-
-#cb_cost = class_batch_overlap(tt1)
-#print("Class cost:")
-#print(cb_cost);
-
-
-finalTT=run_genetic(Fitness_threshold=95, p=20, r=0.6, m=0.001) #p=population size, r=crossover fraction, m=mutation rate
+#tt1=create_random_timetable(n_classes=14, n_days=5, n_slots=10, n_maxlecsperslot=4, req_all=req_all)
