@@ -45,6 +45,7 @@
     <Compile Include="test.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="tt_ga.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="files\" />

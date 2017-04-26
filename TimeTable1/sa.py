@@ -2,6 +2,8 @@ import common as m
 import costFunctions as cf
 import math 
 import random
+import numpy as np;
+import test as t;
 
 # Time table parameters - defined by user
 n_days = 5
@@ -30,29 +32,58 @@ max_lab = len(lab_group);
 # Select initial solution
 tt_initial = m.create_random_timetable(n_classes, n_days, n_slots, n_lec_per_slot, req_all);
 #print(tt_initial[2,:,:,:])
-
+ 
 n_repetitions = 10;
-temperature = 50;
-cooling_rate = 0.8;
+temperature = 10;
+cooling_rate = 0.6;
+
+print("First cost: ", cf.get_cost(tt_initial, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
+
+t.separate_theory_wrapper (tt_initial, req_all, n_days, n_slots);
+print("After separate cost: ", cf.get_cost(tt_initial, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
 
 
-while (temperature > 1):
+def sa (temperature, cooling_rate):
+    "Performs Simulated Annealing on time table"
 
-    i = 0
-    while (i < n_repetitions):
+    while (temperature > 1):
 
-        # Get new timetable in which requirements have moved
-        tt_new = m.swap_neighbourhood(tt_initial, req_all, n_days, n_slots, n_lec_per_slot);
+        i = 0
+        while (i < n_repetitions):
+
+            is_new_accepted = 0;
+
+            tt_before = np.copy(tt_initial);
+            # Get new timetable in which requirements have moved
+            tt_after = t.swap_neighbour(tt_initial, req_all, n_classes, n_days, n_slots);
+
+            # Calculate cost difference
+            before_cost = cf.get_cost(tt_before, req_all, n_classes, n_days, n_slots, max_theory, max_lab);
+            after_cost = cf.get_cost(tt_after, req_all, n_classes, n_days, n_slots, max_theory, max_lab);
+            cost_difference = after_cost - before_cost;
+
+            # If cost of new time table is less or cost is more but exp (-cost/temerature) < random probablity, accept it
+            if (cost_difference <= 0 or (cost_difference > 0 and math.exp(-1 * cost_difference / temperature) < random.random())):
+                tt_initial = tt_after;
+                is_new_accepted = 1
+            else:
+                tt_initial = tt_before;
+
+            print (i, "Before cost: ", before_cost, "\tAfter cost: ", after_cost, "\t Difference: ", cost_difference, "\t is Accepted: ",is_new_accepted);
+            i += 1
+
+        temperature = cooling_rate * temperature;
+
+    return 
 
 
-        # Calculate cost difference
-        cost = cf.get_cost(tt_new, req_all, n_days, n_slots, max_theory, max_lab) - cf.get_cost(tt_initial, req_all, n_days, n_slots, max_theory, max_lab);
+test_array = np.zeros([72, 3], dtype = np.float);
+i = 0;
 
-        # If cost of new time table is less, accept it
-        if (cost <= 0 or (math.exp(-1 * cost / temperature) < random.random())):
-            tt_initial = tt_new;
+for temperature in range(100.0, 800.0, 100):
 
-        i += 1
+    for cooling_rate in range(0.1, 0.9, 0.1):
+        cost = sa (temperature, cooling_rate);
 
-    temperature = cooling_rate * temperature;
+        test_array[i] = [temperature, cooling_rate, cost];
 

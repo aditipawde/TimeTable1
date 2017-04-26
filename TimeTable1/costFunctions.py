@@ -32,13 +32,21 @@ def teacher_overlap(timetable, req_all, n_days, n_slots):
     return teacher_cost
 
 
-
+### Function changed -- Aditi 24/1/17
 def get_room_allocation_overflow (timetable, req_all, n_days, n_slots,  max_theory, max_lab):
     "Checks for a day and slot, maximum allocations possible for a room"
 
     room_cost = 0
+
     for day in range(n_days):
+       
+        # Count number of theory and labs per slot. If it exceeds max allowed, add difference to cost
         for slot in range (n_slots):
+
+            ## Initialize theory lectures per class and labs per slot to zero
+            theory_rooms_per_slot = 0;
+            lab_rooms_per_slot = 0;
+
             temp_array = timetable[:, day, slot, :]
             req_list = []
             for row in temp_array:
@@ -47,15 +55,14 @@ def get_room_allocation_overflow (timetable, req_all, n_days, n_slots,  max_theo
                         req = req_all.loc[req_all.index == cell]
                         #print(req);
                         if (req.iloc[0]['category'] == 'T'):
-                            max_theory -= 1
+                            theory_rooms_per_slot += 1
                         else:
-                            max_lab -= 1
-    #print(max_theory);
-    #print(max_lab);
-    if (max_theory < 0):
-        room_cost = room_cost + -(max_theory)    
-    if (max_lab < 0):
-        room_cost = room_cost + -(max_lab)   
+                            lab_rooms_per_slot += 1
+
+        if (theory_rooms_per_slot > max_theory):
+            room_cost = room_cost + theory_rooms_per_slot - max_theory 
+        if (lab_rooms_per_slot > max_lab):
+            room_cost = room_cost + lab_rooms_per_slot - max_lab
            
  
     return room_cost

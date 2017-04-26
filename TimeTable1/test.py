@@ -94,6 +94,7 @@ def is_only_theory (tt_vector, req_id):
 
     return not_the_only;
 
+### Not getting used - 24/4/17
 def find_empty_slot_for_class (tt, classId, n_days, n_slots):
     "Finds empty slot for a class"
 
@@ -113,7 +114,31 @@ def find_empty_slot_for_class (tt, classId, n_days, n_slots):
                 return [day, slot];
       
     if (found == 0):
-       return [np.nan, np.nan];      
+       return [np.nan, np.nan]; 
+   
+ #### 
+   
+def find_random_theory_empty_slot (tt, classId, n_days, n_slots):
+    "Finds random empty slot for theory" 
+    
+    # Number of tries for attempting to find empty slot
+    max_tries = n_days * n_slots;
+
+    # Select random day and slot check if all lectures in it are empty
+    while (max_tries > 0):
+        r_day = random.randint (0, n_days - 1);
+        r_slot = random.randint (0, n_slots - 1);   
+
+        all_lectures  = tt[classId, r_day, r_slot, :];
+
+        if ((np.isnan(all_lectures)).all()):
+            return [r_day, r_slot]
+
+        max_tries -= 1;
+
+    # Retun nan if not found
+    if (max_tries == 0):
+        return [np.nan, np.nan]
 
 
 def separate_theory_lectures(timetable, req_all, classId, n_days, n_slots):
@@ -138,24 +163,80 @@ def separate_theory_lectures(timetable, req_all, classId, n_days, n_slots):
         
         # Find an empty slot, make earlier location nan and new location to empty slot
         if (not is_only_theory(req_lectures, req)):
-            empty_slot =  find_empty_slot_for_class(timetable, classId, n_days, n_slots);
+            empty_slot =  find_random_theory_empty_slot(timetable, classId, n_days, n_slots);
 
             #print ("first empty slot: ",empty_slot);
-            timetable[timetable == req] = np.nan;
-            timetable[classId, empty_slot[0], empty_slot[1], 0] = req;
+            if (not ((np.isnan(empty_slot)).all())):
+                timetable[timetable == req] = np.nan;
+                timetable[classId, empty_slot[0], empty_slot[1], 0] = req;
         #print(req, req_lectures, req_day, req_slot, isTheOnly, empty_slot);
     return timetable;
+
+def separate_theory_wrapper (timetable, req_all, n_days, n_slots):
+    "Acts as wrapper around separate_theory_lectures"
+
+    for classId in set(req_all.classId):
+        separate_theory_lectures(timetable, req_all, classId, n_days, n_slots);
             
+def shift_theory_to_empty_slot (timetable, req_all, n_class, n_days, n_slots, class_id):
+    "Shift a theory to empty slot"
+
+    req_for_given_class = req_all.loc[req_all['classId'] == class_id]
+    req_theory = req_for_given_class.loc[req_for_given_class['category'] == 'T']
+    #print(req_theory);
+
+    for req in req_theory.index:
+        # Get day and slot for a requirement
+        indices = np.argwhere (timetable[class_id] == req);
+        req_day = indices[0][0];
+        req_slot = indices[0][1];
+
+        # Find empty slot
+        empty_slot =  find_random_theory_empty_slot(timetable, class_id, n_days, n_slots);
+
+        # Shift to empty slot
+        
+        if (not ((np.isnan(empty_slot)).all())):
+            timetable[timetable == req] = np.nan;
+            timetable[class_id, empty_slot[0], empty_slot[1], 0] = req;
+
+    return timetable;
+
+def schedule_batches_in_parallel (timetable, req_all, n_classes, n_days, n_slots, n_lec_per_slot):
+    ""
+
+    class_id = 2;
+
+    req_for_given_class = req_all.loc[req_all['classId'] == class_id]
+    req_lab = req_for_given_class.loc[req_for_given_class['category'] == 'L']
+
+    # Get from database classId, batchId, overlapClassId, overlapBatchId
+    f_overlapping_batches_with_classId = da.execquery("SELECT bc.classId, bc.batchId, bca.classId as 'overlapClassId', bca.batchId as 'overlapBatchId' FROM batchClass bc, batchClass bca, batchCanOverlap bo WHERE bc.batchId = bo.batchId AND bca.batchId = bo.batchOverlapId ");
+
+    overlapping_batch_list = get_overlapping_batch_list (f_overlapping_batches_with_classId, class_id);
+
+    r_req = random.sample(set(req_lab.index), 1);
+    #req_duration = 
+
+    indices = np.argwhere (timetable[class_id] == r_req[0]);
+    req_day = indices[0][0];
+    req_slot = indices[0][1];
+    req_subslot = indices[0][2];
+
+    ## Not completed
+    #if (req_subslot < 3):
+    #    #Check next empty subslot
 
 
        
-def swap_neighbor(timetable, req_all, n_class, n_days, n_slots):
+def swap_neighbour(timetable, req_all, n_class, n_days, n_slots):
     "Swaps neighbors ot find better timetable"
 
     # Keep theory lectures as the only lectures
-    for classId in range(2, n_class):
+    for classId in set(req_all.classId):
 
-        separate_thoery_lectures (timetable, req_all, classId, n_days, n_slots);
+        
+        shift_theory_to_empty_slot(timetable, req_all, n_class, n_days, n_slots, classId);
 
     return timetable;
 
@@ -171,13 +252,7 @@ test_class_Id = 2
 
 # Get all scheduling requirements
 req_all = m.get_all_requirements();
-print(req_all)
-
-
-
-timetable = create_random_tt_batches_first(req_all, n_classes,n_days,n_slots, n_lec_per_slot);
-print(timetable[test_class_Id, :, :, :])
-
+#print(req_all)
 
 #req_th = req_all.loc[req_all['category'] == 'T']
 ##print(req_th, len(req_th))
@@ -191,44 +266,31 @@ print(timetable[test_class_Id, :, :, :])
 
 ##print(n_classes);
 
-## Create room groups -- used in cost claculations and final room allocation
-#lab_group = []
-#theory_group = []
+# Create room groups -- used in cost claculations and final room allocation
+lab_group = []
+theory_group = []
 
-#m.get_room_groups(lab_group, theory_group);
-#max_theory = len(theory_group);
-#max_lab = len(lab_group);
+m.get_room_groups(lab_group, theory_group);
+max_theory = len(theory_group);
+max_lab = len(lab_group);
 
-## Select initial solution
-#tt_initial = m.create_random_timetable (n_classes, n_days, n_slots, n_lec_per_slot, req_all);
-#print("Initial TT");
+# Select initial solution
+tt = m.create_random_timetable (n_classes, n_days, n_slots, n_lec_per_slot, req_all);
+tt_initial = np.copy(tt);
+print("Initial TT");
+print(tt[test_class_Id, :, :, :])
 
+separate_theory_wrapper (tt, req_all, n_days, n_slots);
 
+tt_new = swap_neighbour(tt, req_all, n_classes, n_days, n_slots);
+print("Changed TT");
+print(tt_new[2, :, :, :])
 
-#print("Initial cost:")
-#print(cf.get_cost(tt_initial, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
+print("Initial cost:")
+print(cf.get_cost(tt_initial, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
 
-##new_tt = reduce_batch_class_overlap(tt_initial, req_all, test_class_Id, n_days, n_slots)
-#new_tt = swap_neighbor (tt_initial, req_all, n_classes, n_days, n_slots);
+print("Changed cost:")
+print(cf.get_cost(tt_new, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
 
-#print("New TT");
-#print(new_tt[test_class_Id, :, :, :])
-
-#print("New cost:")
-#print(cf.get_cost(new_tt, req_all, n_classes, n_days, n_slots, max_theory, max_lab));
-
-#nn = cf.subject_on_same_day (new_tt, req_all, test_class_Id,  n_days, n_slots);
-
-
-#tt_new =m.swap_neighbourhood(tt_initial, req_all, n_days, n_slots, n_lec_per_slot);
-#print("Changed TT");
-#print(tt_new[2, :, :, :])
-
-#print("Changed cost:")
-#print(cf.get_cost(tt_new, req_all, n_days, n_slots, max_theory, max_lab));
-
-
-#f_batch_can_overlap = da.initialize('batchcanoverlap');
-#print(f_batch_can_overlap);
 
 
