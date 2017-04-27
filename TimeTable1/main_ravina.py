@@ -2,12 +2,12 @@ import dataAccessSQLAlchemy as da
 import pandas as pd
 import random
 import numpy as np
-max_theory_roomgroup=10
+max_theory_roomgroup=4
 max_lab_roomgroup=10
 
 def find_first_nan(vec):
     """return the index of the first occurence of item in vec"""
-    for i in xrange(len(vec)):
+    for i in range(len(vec)):
         if(np.isnan(vec[i])):
             return i
     return -1
@@ -51,11 +51,11 @@ def is_slot_available(req_all, timetable_np, c, r_day, r_slot, req_id, theory_ro
             #Condition 2: Check if rooms are available
             if (req_all.loc[req_id, 'category'] == 'T'):
                 #Check room group availability
-                if(theory_roomgroup[r_day, r_slot]>=max_theory_roomgroup):
+                if(theory_roomgroup[r_day, r_slot + i]>=max_theory_roomgroup): # i added by Aditi - 27/4
                     return False
             else: #i.e. category==L
                 #Check room group availability
-                if(lab_roomgroup[r_day, r_slot]>=max_lab_roomgroup):
+                if(lab_roomgroup[r_day, r_slot + i]>=max_lab_roomgroup):  # i added by Aditi - 27/4
                     return False
             #
             # #Condition 3: Check if the parallel lecture is T/L. No T-L or L-T lectures can take place parallely
@@ -80,9 +80,9 @@ def assign(timetable_np, c, r_day, r_slot, req_id, req_all, theory_roomgroup, la
         j=find_first_nan(timetable_np[c, r_day, r_slot+i, :])
         timetable_np[c, r_day, r_slot + i, j]=req_id
         if (req_all.loc[req_id, 'category'] == 'T'):
-            theory_roomgroup[r_day, r_slot] = theory_roomgroup[r_day, r_slot]+1
+            theory_roomgroup[r_day, r_slot + i] = theory_roomgroup[r_day, r_slot + i]+1 # Not needed, still added i -- Aditi 27/4
         else:
-            lab_roomgroup[r_day, r_slot] = lab_roomgroup[r_day, r_slot] + 1
+            lab_roomgroup[r_day, r_slot + i] = lab_roomgroup[r_day, r_slot + i] + 1 # Added i -- Aditi 27/4
     return timetable_np, theory_roomgroup, lab_roomgroup
 
 def create_random_timetable(n_classes, n_days, n_slots, n_maxlecsperslot, req_all):
@@ -131,6 +131,8 @@ def create_random_timetable(n_classes, n_days, n_slots, n_maxlecsperslot, req_al
     return timetable_np
 
 print("Welcome");
+
+ #Commented by Aditi 27/4
 
 f_subject_subjectClassTeacher = da.execquery('select s.subjectId, subjectShortName, totalHrs, eachSlot, c.classId, teacherId from subject s, subjectClassTeacher c where s.subjectId = c.subjectId;')
 f_subject_subjectClassTeacher.insert(5,'batchId','-')

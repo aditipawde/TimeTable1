@@ -4,18 +4,23 @@ import random
 import numpy as np
 import main_ravina as t
 import costFunctions as cost
+import common as m
 
 def initialize_population(p):
     P=[None]*p
     print("initialising population...")
+
+    # Gather all scheduling requirements
+    req_all = m.get_all_requirements();
     for i in range(p):
-        tt = t.create_random_timetable(n_classes=14, n_days=5, n_slots=10, n_maxlecsperslot=5, req_all=t.req_single)
+        
+        tt = m.create_random_timetable(m.n_classes, m.n_days, m.n_slots, m.n_lec_per_slot, req_all) # Create random copied to common module
         P[i]=tt
         print(i)
     return P
 
 def find_objective(h):
-    penalty=cost.get_cost(h, t.req_single, 4, 4)
+    penalty=cost.get_cost(h, t.req_single, 4, 4, m.max_theory, m.max_lab)
     return penalty
 
 def crossover(tt1, tt2):
