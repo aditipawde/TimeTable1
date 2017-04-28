@@ -3,6 +3,7 @@ import pandas as pd
 import numpy
 import random
 import numpy as np
+import sa_functions as t
 
 #n_classes = 14
 #n_days = 5
@@ -114,7 +115,62 @@ def class_batch_overlap(timetable, req_all):
 
     return class_cost + batch_cost
 
-  
+def test_class_batch_overlap(timetable, req_all):
+    """Calculates overlaps for theory classes and (non allowed) overlaps for batches and increments cost accordingly. Inconsistencies in data are handled"""
+
+    class_cost = 0
+    batch_cost = 0
+
+    n_classes, n_days, n_slots, n_max_lec_per_slot=timetable.shape
+    f_batch_can_overlap = da.initialize('batchcanoverlap');
+
+    # Get from database classId, batchId, overlapClassId, overlapBatchId
+    f_overlapping_batches_with_classId = da.execquery("SELECT bc.classId, bc.batchId, bca.classId as 'overlapClassId', bca.batchId as 'overlapBatchId' FROM batchClass bc, batchClass bca, batchCanOverlap bo WHERE bc.batchId = bo.batchId AND bca.batchId = bo.batchOverlapId ");
+
+    for cl in range(n_classes):
+        for day in range(n_days):
+            for slot in range(n_slots):
+                class_list = []
+                batch_list = []
+                slot_array = timetable[cl,day,slot,:]
+                # Make 2 lists-class_list having all classes in the sub-slot & batch-list having all batches in sub-slot
+                # Classes have category 'T' and Batches have category 'L'
+                for sub_slot in slot_array:
+                    if not np.isnan(sub_slot):
+                        req = req_all.loc[req_all.index == sub_slot]
+                        if req.iloc[0]['category'] == 'T':        
+                            class_list.append(req.iloc[0]['classId'])
+                        elif req.iloc[0]['category'] == 'L':
+                            batch_list.append(req.iloc[0]['batchId'])
+
+                # If the same class is repeated in the class_list for the same sub-slot, increment cost
+                if len(class_list) > 1 :        # Cost will be incremented only if multiple classes in same sub-slot
+                    for class_id in class_list:                        class_cost = class_cost + class_list.count(class_id) - 1
+
+                if len(batch_list)>1:           # Cost will be incremented only if multiple batches in same sub-slot
+                    for batch_id in batch_list:             # In case same batch is slotted more than once in sub slot
+                        batch_cost = batch_cost + batch_list.count(batch_id) - 1
+                        
+                    # 1. Consider first batch in batch_list.
+                    # 2. Get all batches that are allowed to overlap
+                    # 3. Loop over all batches in batch_list. If any batch does'nt belong to this list, cost incremented
+                    batch_id = batch_list[0]
+                    #batches_can_overlap = f_batch_can_overlap[f_batch_can_overlap['batchId'] == batch_id]
+                    #batches_all = batches_can_overlap[batches_can_overlap.columns[2:3]] # get batch_can_overlap colum
+                    #batches_all_list = batches_all['batchOverlapId'].tolist()
+                    #batches_all_list.append(batch_id)
+
+
+                    for batch in batch_list:
+                        overlap_allowed = t.get_overlapping_batch_list(f_overlapping_batches_with_classId, cl, batch);
+
+                        if (len(overlap_allowed) > 0):
+                            if batch not in overlap_allowed:
+                                batch_cost += 1
+    #                        print("ClassId: ", cl, "Batch: ", batch, "Batch_all_lsit:", overlap_allowed, "batch_cost: ", batch_cost, "class_cost: ", class_cost);
+    #print("Final cost: ", class_cost + batch_cost);
+    return class_cost + batch_cost
+
 ## To be tested
 
 def getting_lunch_break (timetable, n_days, n_slots, n_classes):
@@ -149,9 +205,7 @@ def subject_on_same_day (timetable, req_all, classId, n_days, n_slots):
     "Finds out if requirements of same subject fall on same day"
 
     req_classId = req_all.loc[req_all['classId'] == classId]
-    subjects = req_classId['subjectId'] 
-
-
+    subjects = req_classId['subjectId'];
 
     print(subjects);
 
@@ -166,16 +220,15 @@ def get_cost(tt, req_all, n_classes, n_days, n_slots, max_theory, max_lab):
     # Varoius costs
     c_teacher = teacher_overlap (tt, req_all, n_days, n_slots);
     c_room = get_room_allocation_overflow (tt, req_all, n_days, n_slots, max_theory, max_lab);
-    c_batch_class = class_batch_overlap (tt, req_all);
+    c_batch_class = test_class_batch_overlap (tt, req_all);
     #c_lunch_break = getting_lunch_break(tt, n_days, n_slots, n_classes);
      
     # Actual cost
     cost = w_teacher * c_teacher + w_room * c_room + w_batch_class * c_batch_class;
 
     # Print costs
-    print("Teacher cost: ", c_teacher);
-    print("Room cost: ", c_room);
-    print("Batch-class overlap cost: ", c_batch_class);
+    print("Teacher cost: ", c_teacher, "Room cost: ", c_room, "Batch-class overlap cost: ", c_batch_class, "Total cost: ", cost);
+
     #print("Lunch break cost: ", c_lunch_break);
 
     return cost;

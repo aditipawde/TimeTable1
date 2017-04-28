@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>5eb5df15-ccb2-42cf-9214-34a4d670b7df</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>test.py</StartupFile>
+    <StartupFile>sa_main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -30,28 +30,20 @@
     <Compile Include="dataAccessSQLAlchemy.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="main.py" />
+    <Compile Include="init_random_timetable.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="costFunctions.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="main_ravina.py" />
-    <Compile Include="main_ravina2.py" />
-    <Compile Include="ravina_random.py">
+    <Compile Include="sa_functions.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="sa.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="test.py">
+    <Compile Include="sa_main.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="tt_ga.py" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="files\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="files\batch-can-overlap.csv" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="{9a7a9026-48c1-4688-9d5d-e5699d47d074}\3.4" />
