@@ -41,3 +41,10 @@ def execquery (query):
 
     return frame;
 
+def exec_insert(table, frame):
+    db = DB()
+    con = db.getConnection()
+    print (frame.info())
+    frame.to_sql(table, con, if_exists='append', index=False)
+
+

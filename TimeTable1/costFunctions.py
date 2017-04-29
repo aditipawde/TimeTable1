@@ -171,7 +171,7 @@ def test_class_batch_overlap(timetable, req_all):
     #print("Final cost: ", class_cost + batch_cost);
     return class_cost + batch_cost
 
-## To be tested
+## To be tested - Soft constraints
 
 def getting_lunch_break (timetable, n_days, n_slots, n_classes):
     "Checks if a class is getting lunch break"

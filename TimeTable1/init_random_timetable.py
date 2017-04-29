@@ -173,7 +173,7 @@ def create_random_timetable(n_classes, n_days, n_slots, n_maxlecsperslot, req_al
     req_single = req_all[req_all['isAssigned']==False]
     for c in (set(req_single.classId)):  # First take one class
         req_forgivenclass = req_single.loc[req_single['classId'] == c]  # List all the requirements for that class in req_forgivenclass
-        req_forgivenclass=req_forgivenclass.sort('eachSlot', ascending=False)
+        req_forgivenclass=req_forgivenclass.sort_values(by='eachSlot', ascending=False)
         req_set=req_forgivenclass.index
         for req in (req_set):  # Schedule each of these requirements
             notassigned = 1

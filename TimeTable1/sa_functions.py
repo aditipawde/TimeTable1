@@ -7,7 +7,7 @@ import math
 import random
 import dataAccessSQLAlchemy as da
 import numpy as np
-
+import pandas as pd
 
 
 def get_overlapping_batch_list (f_overlapping_batches_with_classId, classId, batchId):
@@ -250,3 +250,59 @@ def swap_neighbour(timetable, req_all, n_classes, n_days, n_slots, theory_roomgr
     separate_batches(timetable, req_all, theory_roomgroup, lab_roomgroup, max_theory, max_lab);
 
     return timetable;
+
+
+def write_to_timetable_db(time_table, req_all, theory_group, lab_group):
+    """Function for writing the created time table in database"""
+    n_classes, n_days, n_slots, n_max_lec_per_slot = time_table.shape
+    tt_id = 0
+    f_time_table = da.execquery('select * from timeTable;')
+    f_time_table.drop(f_time_table.index, inplace=True)
+    #lab_group = []
+    #theory_group = []
+
+    #get_room_groups(lab_group, theory_group);
+    #max_theory = len(theory_group);
+    #max_lab = len(lab_group);
+    #f_time_table = pd.DataFrame(index=range(len(req_all.index)), columns=list(f_time_table))
+    f_time_table = pd.DataFrame(index=range(444), columns=list(f_time_table))
+    tt_data = []
+    for day in range(n_days):
+        for slot in range (n_slots):
+            temp_array = time_table[:, day, slot, :]
+            theory_group_index = 0
+            lab_group_index = 0
+            for row in temp_array:
+                for cell in row:
+                    if not np.isnan(cell):
+                        req = req_all.loc[req_all.index == cell]
+                        if req.iloc[0]['category'] == 'T':
+                            if theory_group_index > len(theory_group):
+                                theory_room_id = -1000
+                            else:
+                                theory_room_id = theory_group[theory_group_index]
+                            f_time_table.loc[tt_id] = [tt_id, day, slot, theory_room_id, req.iloc[0]['classId'],
+                                                       req.iloc[0]['subjectId'], req.iloc[0]['teacherId'],
+                                                       req.iloc[0]['batchId'], 0, 0, 0]
+                            theory_group_index += 1
+
+                        else:
+                            if lab_group_index > len(lab_group):   # Accounting for the room ids for labs starting from 5
+                                lab_room_id = -1000
+                            else:
+                                lab_room_id = lab_group[lab_group_index]
+                            #required_slots = req.iloc[0]['']
+                            f_time_table.loc[tt_id] = [tt_id, day, slot, lab_room_id, req.iloc[0]['classId'],
+                                                       req.iloc[0]['subjectId'], req.iloc[0]['teacherId'],
+                                                       req.iloc[0]['batchId'], 0, 0, 0]
+                            lab_group_index += 1
+
+                        tt_id += 1
+
+    #da.exec_insert('timeTable', f_time_table)
+    f_time_table.to_csv("tt.csv");
+
+
+
+
+
